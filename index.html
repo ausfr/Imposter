@@ -138,17 +138,19 @@
         
         <div id="player-list-display" class="player-list"></div>
 
-        <div class="toggle-container">
-            <div class="toggle-row">
-                <span>Enable Imposter</span>
-                <input type="checkbox" id="imposter-toggle" checked>
-            </div>
-            <div class="toggle-row">
-                <span>Enable White List</span>
-                <input type="checkbox" id="whitelist-toggle" checked>
-            </div>
-        </div>
+        <div style="background: #334155; padding: 15px; border-radius: 16px; margin: 15px 0; text-align: left; border: 1px solid #475569;">
+    <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #94a3b8; text-transform: uppercase;">Game Modes</p>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <label for="imposter-toggle" style="font-weight: bold;">Enable Imposter</label>
+        <input type="checkbox" id="imposter-toggle" checked style="width: 25px; height: 25px; accent-color: var(--imposter);">
+    </div>
 
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label for="whitelist-toggle" style="font-weight: bold;">Enable White List</label>
+        <input type="checkbox" id="whitelist-toggle" checked style="width: 25px; height: 25px; accent-color: var(--whitelist);">
+    </div>
+</div>
         <label>Discussion Time (seconds):</label>
         <input type="number" id="timer-input" value="60">
         
