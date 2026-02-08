@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Imposter: Infiltration</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #8b5cf6;
+            --imposter: #ef4444;
+            --whitelist: #10b981;
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 { margin-top: 0; color: var(--accent); font-size: 1.8rem; }
+        .hidden { display: none !important; }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        input { background: #334155; color: white; }
+
+        button {
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .player-tag {
+            background: #334155;
+            padding: 5px 10px;
+            margin: 5px;
+            display: inline-block;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .hold-btn {
+            background: #475569;
+            height: 80px;
+            margin: 20px 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .hold-btn:active { background: var(--accent); }
+
+        #word-box {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            min-height: 1.5rem;
+        }
+
+        .timer { font-size: 1.2rem; color: #94a3b8; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup-screen">
+        <h1>🕵️ Game Setup</h1>
+        <input type="text" id="name-input" placeholder="Player Name...">
+        <button onclick="addPlayer()" style="background: #4ade80; color: #064e3b;">+ Add Player</button>
+        
+        <div id="player-list-display"></div>
+        
+        <label style="display:block; margin-top:15px;">Discussion Time (sec):</label>
+        <input type="number" id="timer-input" value="60">
+        
+        <button onclick="startGame()" id="start-btn" style="margin-top:20px;">START GAME</button>
+    </div>
+
+    <div id="reveal-screen" class="hidden">
+        <p>Pass the phone to:</p>
+        <h2 id="current-player-name" style="color: var(--accent);">NAME</h2>
+        <button class="hold-btn" 
+                onmousedown="showWord()" onmouseup="hideWord()" 
+                ontouchstart="showWord()" ontouchend="hideWord()">
+            HOLD TO REVEAL WORD
+        </button>
+        <div id="word-box">******</div>
+        <button onclick="nextReveal()" id="next-btn">I'VE SEEN IT</button>
+    </div>
+
+    <div id="play-screen" class="hidden">
+        <div class="timer" id="timer-display">Time: 60</div>
+        <h3>Discussion Phase</h3>
+        <p>Talk and find the Imposter!</p>
+        <button onclick="showFinalRevealButtons()" style="background: #64748b;">GO TO VOTING</button>
+    </div>
+
+    <div id="final-screen" class="hidden">
+        <h1>Results</h1>
+        <button id="reveal-imp-btn" onclick="revealImposter()" style="background: var(--imposter);">REVEAL IMPOSTER</button>
+        <button id="reveal-wl-btn" onclick="revealWhiteList()" class="hidden" style="background: var(--whitelist);">REVEAL WHITE LIST</button>
+        <button onclick="location.reload()" style="margin-top:30px; background:transparent; border:1px solid #475569;">Restart Game</button>
+    </div>
+</div>
+
+<script>
+    let players = [];
+    let currentPlayerIndex = 0;
+    let gameData = [];
+    let timerInterval;
+
+    const wordPairs = [
+        { c: "Coffee", w: "Tea" }, { c: "Airplane", w: "Helicopter" },
+        { c: "Smartphone", w: "Tablet" }, { c: "Pizza", w: "Burger" },
+        { c: "Lion", w: "Tiger" }, { c: "Movie", w: "Documentary" }
+    ];
+
+    function addPlayer() {
+        const input = document.getElementById('name-input');
+        if (input.value.trim()) {
+            players.push(input.value.trim());
+            renderPlayers();
+            input.value = "";
+        }
+    }
+
+    function renderPlayers() {
+        const container = document.getElementById('player-list-display');
+        container.innerHTML = players.map(p => `<span class="player-tag">${p}</span>`).join('');
+    }
+
+    function startGame() {
+        if (players.length < 3) return alert("Need at least 3 players!");
+        
+        // Setup Logic
+        const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+        let roles = ['Imposter', 'WhiteList'];
+        while (roles.length < players.length) roles.push('Citizen');
+        roles = roles.sort(() => Math.random() - 0.5);
+
+        gameData = players.map((name, i) => ({
+            name: name,
+            role: roles[i],
+            word: roles[i] === 'Citizen' ? pair.c : (roles[i] === 'WhiteList' ? pair.w : '???')
+        }));
+
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('reveal-screen').classList.remove('hidden');
+        updateRevealScreen();
+    }
+
+    function updateRevealScreen() {
+        document.getElementById('current-player-name').innerText = gameData[currentPlayerIndex].name;
+        document.getElementById('word-box').innerText = "******";
+    }
+
+    function showWord() {
+        const p = gameData[currentPlayerIndex];
+        document.getElementById('word-box').innerText = p.role === 'Imposter' ? "YOU ARE IMPOSTER" : p.word;
+    }
+
+    function hideWord() {
+        document.getElementById('word-box').innerText = "******";
+    }
+
+    function nextReveal() {
+        currentPlayerIndex++;
+        if (currentPlayerIndex < gameData.length) {
+            updateRevealScreen();
+        } else {
+            startDiscussion();
+        }
+    }
+
+    function startDiscussion() {
+        document.getElementById('reveal-screen').classList.add('hidden');
+        document.getElementById('play-screen').classList.remove('hidden');
+        
+        let timeLeft = parseInt(document.getElementById('timer-input').value);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer-display').innerText = `Time: ${timeLeft}`;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                alert("Time is up! Vote now.");
+            }
+        }, 1000);
+    }
+
+    function showFinalRevealButtons() {
+        clearInterval(timerInterval);
+        document.getElementById('play-screen').classList.add('hidden');
+        document.getElementById('final-screen').classList.remove('hidden');
+    }
+
+    function revealImposter() {
+        const imp = gameData.find(p => p.role === 'Imposter');
+        alert(`🚨 THE IMPOSTER WAS: ${imp.name}`);
+        document.getElementById('reveal-imp-btn').classList.add('hidden');
+        document.getElementById('reveal-wl-btn').classList.remove('hidden');
+    }
+
+    function revealWhiteList() {
+        const wl = gameData.find(p => p.role === 'WhiteList');
+        alert(`🕵️ THE WHITE LIST WAS: ${wl.name}\nWord was: ${wl.word}`);
+    }
+</script>
+
+</body>
+</html>
